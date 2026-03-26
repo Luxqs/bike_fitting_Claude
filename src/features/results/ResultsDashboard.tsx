@@ -1,15 +1,17 @@
 // ─── ResultsDashboard Component ───────────────────────────────────────────────
 
+import { useState } from 'react';
 import type { FitResult } from '@/types/fit';
 import { FitDimensionCard } from './FitDimensionCard';
 import { ConfidenceIndicator } from './ConfidenceIndicator';
 import { Disclaimer } from '@/components/Disclaimer';
 import { BIKE_CATEGORIES } from '@/config/bikeCategories';
 import { formatMm } from '@/utils/formatUtils';
+import { shareViaEmail, shareViaWhatsApp } from './exportUtils';
 
 interface ResultsDashboardProps {
   result: FitResult;
-  onExport: () => void;
+  onExport: () => Promise<void>;
   onReset: () => void;
 }
 
@@ -35,6 +37,17 @@ const DIMENSION_GROUPS = [
 
 export function ResultsDashboard({ result, onExport, onReset }: ResultsDashboardProps) {
   const category = BIKE_CATEGORIES[result.bikeCategory];
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [shareOpen, setShareOpen] = useState(true);
+
+  const handlePDF = async () => {
+    setPdfBusy(true);
+    try {
+      await onExport();
+    } finally {
+      setPdfBusy(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-slide-up" id="results-dashboard">
@@ -167,14 +180,73 @@ export function ResultsDashboard({ result, onExport, onReset }: ResultsDashboard
       {/* Disclaimer */}
       <Disclaimer variant="full" />
 
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+      {/* Save & Share */}
+      <div className="border border-gray-200 rounded-2xl overflow-hidden">
+        {/* Header row — toggles the panel on mobile */}
         <button
-          onClick={onExport}
-          className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-xl font-semibold hover:bg-brand-700 transition-colors"
+          onClick={() => setShareOpen(v => !v)}
+          className="w-full flex items-center justify-between px-5 py-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
         >
-          <span>📄</span> Export PDF Summary
+          <span className="font-semibold text-gray-800 text-sm">Save &amp; Share your results</span>
+          <span className="text-gray-400 text-xs">{shareOpen ? '▲ hide' : '▼ show'}</span>
         </button>
+
+        {shareOpen && (
+          <div className="px-5 py-4 space-y-3 bg-white">
+            {/* PDF */}
+            <button
+              onClick={handlePDF}
+              disabled={pdfBusy}
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-brand-100 bg-brand-50 hover:border-brand-400 hover:bg-brand-100 transition-all disabled:opacity-60"
+            >
+              <span className="text-2xl flex-shrink-0">📄</span>
+              <div className="text-left min-w-0">
+                <p className="font-semibold text-sm text-brand-800">
+                  {pdfBusy ? 'Generating PDF…' : 'Save as PDF'}
+                </p>
+                <p className="text-xs text-brand-600 mt-0.5">
+                  Download a full report with all dimensions, confidence scores and notes
+                </p>
+              </div>
+            </button>
+
+            {/* Email */}
+            <button
+              onClick={() => shareViaEmail(result)}
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 bg-white hover:border-gray-300 hover:bg-gray-50 transition-all"
+            >
+              <span className="text-2xl flex-shrink-0">✉️</span>
+              <div className="text-left min-w-0">
+                <p className="font-semibold text-sm text-gray-800">Send via Email</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Opens your email app with a pre-filled summary — send to yourself or your fitter
+                </p>
+              </div>
+            </button>
+
+            {/* WhatsApp */}
+            <button
+              onClick={() => shareViaWhatsApp(result)}
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-green-100 bg-green-50 hover:border-green-400 hover:bg-green-100 transition-all"
+            >
+              <span className="text-2xl flex-shrink-0">💬</span>
+              <div className="text-left min-w-0">
+                <p className="font-semibold text-sm text-green-800">Share via WhatsApp</p>
+                <p className="text-xs text-green-600 mt-0.5">
+                  Opens WhatsApp with your fit summary ready to send to a contact or group
+                </p>
+              </div>
+            </button>
+
+            <p className="text-xs text-gray-400 pt-1 text-center">
+              No data is uploaded — your results stay on your device.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Reset */}
+      <div className="flex pt-1">
         <button
           onClick={onReset}
           className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
