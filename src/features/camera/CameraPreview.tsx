@@ -8,9 +8,12 @@ import { LandmarkOverlay } from './LandmarkOverlay';
 
 export interface CameraPreviewProps {
   onStreamReady?: (stream: MediaStream) => void;
+  /** Called with the <video> element once it starts playing — use to feed MediaPipe */
+  onVideoReady?: (video: HTMLVideoElement) => void;
   onError?: (error: string) => void;
   showLandmarks?: boolean;
   landmarks?: NormalizedLandmark[] | null;
+  highlightIndices?: number[];
   quality?: CaptureQuality | null;
   /** e.g. "Front View" or "Side View (Left)" */
   viewLabel?: string;
@@ -65,9 +68,11 @@ function PermissionDeniedUI() {
 
 export function CameraPreview({
   onStreamReady,
+  onVideoReady,
   onError,
   showLandmarks = true,
   landmarks = null,
+  highlightIndices = [],
   quality = null,
   viewLabel,
   isCapturing = false,
@@ -168,6 +173,7 @@ export function CameraPreview({
 
     setIsInitializing(false);
     onStreamReady?.(stream);
+    onVideoReady?.(video);
   }, [facingMode, onError, onStreamReady]);
 
   useEffect(() => {
@@ -265,6 +271,7 @@ export function CameraPreview({
           videoWidth={videoDimensions.width}
           videoHeight={videoDimensions.height}
           canvasRef={canvasRef}
+          highlightIndices={highlightIndices}
         />
       )}
 
